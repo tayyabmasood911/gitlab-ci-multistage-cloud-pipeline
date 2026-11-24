@@ -1,9 +1,0 @@
-deploy_staging:
-  stage: deploy
-  environment:
-    name: staging
-    url: https://staging.example.com
-  script:
-    - kubectl apply -f k8s/staging/
-  only:
-    - main

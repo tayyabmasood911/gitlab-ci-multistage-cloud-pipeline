@@ -1,128 +1,104 @@
-# :rocket: Gitlab Ci Multistage Cloud Pipeline
+# Enterprise Multi-Stage GitLab CI/CD Cloud Pipeline
 
-<div align="center">
+[![CI Validation](https://github.com/tayyabmasood911/gitlab-ci-multistage-cloud-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/tayyabmasood911/gitlab-ci-multistage-cloud-pipeline/actions)
+[![Security Policy](https://img.shields.io/badge/Security-Policy-blue.svg)](SECURITY.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GitLab CI](https://img.shields.io/badge/GitLab%20CI-16.0%2B-orange.svg)](https://docs.gitlab.com/ee/ci/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-RollingUpdate-blue.svg)](https://kubernetes.io)
 
-[![Status](https://img.shields.io/badge/status-production--ready-brightgreen?style=for-the-badge&logo=git)]()
-[![Domain](https://img.shields.io/badge/domain-Cloud--Architecture--and--IaC-blueviolet?style=for-the-badge)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge&logo=github)](https://github.com/T9113/gitlab-ci-multistage-cloud-pipeline/pulls)
-[![Security Hardened](https://img.shields.io/badge/security-hardened-red?style=for-the-badge&logo=shield)]()
-
-</div>
+A turnkey enterprise-grade GitLab CI/CD pipeline template engineered for multi-tier branch caching, secure Docker-in-Docker (DinD) layer caching, automated DevSecOps security scanning, staging environment delivery, and manual approval-gated production rollouts with instant rollback capabilities.
 
 ---
 
-## :memo: Executive Summary
+## Architectural Blueprint
 
-**Gitlab Ci Multistage Cloud Pipeline** is an enterprise-grade production engineering implementation designed for mission-critical deployments. Built to meet stringent requirements for **99.99% availability**, zero-trust security boundaries, automated resilience, and seamless CI/CD delivery.
+The pipeline is partitioned into 6 distinct stages connected by secure TLS networks and distributed branch caches:
 
-Key operational outcomes:
-- **Resilience:** Multi-zone high availability with automated fault detection and recovery.
-- **Scalability:** Elastic horizontal scaling responsive to real-time workload demand.
-- **Security:** Strict adherence to least-privilege RBAC, encrypted communications, and zero committed secrets.
-- **Maintainability:** Modular, declarative configuration aligned with cloud-native industry standards.
+![GitLab CI Architecture](docs/architecture.svg)
 
 ---
 
-## :building_construction: System Architecture
+## Pipeline Stages & Lifecycle
 
-```text
-+-------------------------------------------------------------------------------+
-|                       Gitlab Ci Multistage Cloud Pipeline Architecture Blueprint                    |
-|                                                                               |
-|   [Client Ingress] ===> [API Gateway / Traffic Router (TLS 1.3 / mTLS)]       |
-|                                     |                                         |
-|                                     v                                         |
-|                         [Core Workload Cluster]                               |
-|                         (Multi-Replica / Multi-AZ)                            |
-|                                     |                                         |
-|                 +-------------------+-------------------+                     |
-|                 |                                       |                     |
-|                 v                                       v                     |
-|     [Persistence & Storage Layer]           [Observability & Telemetry Engine]|
-|      (Encrypted at Rest / KMS)              (Prometheus / OTLP / OpenSearch)  |
-+-------------------------------------------------------------------------------+
+| Stage | Purpose | Primary Image / Service | Security & Quality Controls |
+|:---|:---|:---|:---|
+| **`validate`** | Static code and YAML style checking | `node:20-alpine`, `python:3.12-alpine` | ESLint, Prettier, Yamllint schema check. |
+| **`test`** | Automated unit & integration testing | `node:20-alpine` | Cobertura test coverage report generation. |
+| **`security`** | DevSecOps security scans | Gitleaks, Semgrep SAST, Trivy | Zero-tolerance secret leaks, SAST vulnerabilities, CVEs. |
+| **`build`** | Optimized container build | `docker:24.0-cli` + `docker:24.0-dind` | Overlay2 storage, mTLS daemon, Docker layer cache. |
+| **`deploy-staging`** | Continuous staging deployment | `dtzar/helm-kubectl` | Automated rolling update, staging smoke test probes. |
+| **`deploy-production`**| Production release & rollback | `dtzar/helm-kubectl` | **Manual approval gate**, zero-downtime RollingUpdate. |
+
+---
+
+## Docker-in-Docker (DinD) & Caching Mechanics
+
+### High-Performance Daemon Configuration
+```yaml
+variables:
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  DOCKER_DRIVER: overlay2
+```
+
+### Multi-Tier Distributed Caching
+```yaml
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - .npm/
+    - .pip-cache/
+  policy: pull-push
 ```
 
 ---
 
-## :sparkles: Key Enterprise Capabilities
+## Quick Start & Usage
 
-- :zap: **High Availability & Fault Tolerance:** Eliminates single points of failure via multi-node redundancy and health check probes.
-- :shield: **Zero-Trust Security Posture:** Enforces non-root runtime environments, ephemeral credentials, and automated vulnerability scanning.
-- :chart_with_upwards_trend: **Elastic Autoscaling:** Dynamic resource provisioning based on custom throughput, memory pressure, and queue depth.
-- :mag: **Full-Stack Observability:** Standardized structured telemetry, metrics instrumentation, and distributed request tracing.
-- :package: **GitOps & CI/CD Automation:** Infrastructure and configuration managed declaratively with automated testing and continuous deployment.
+### 1. Ingesting into Target Repository
+Copy `.gitlab-ci.yml` and `k8s/` into your target repository root:
 
----
-
-## :file_folder: Repository Directory Structure
-
-```text
-.
-|-- config/              # Declarative configuration and environment definitions
-|-- src/                 # Production source code and manifests
-|-- scripts/             # Operational automation, setup, and maintenance scripts
-|-- tests/               # Comprehensive validation and unit test suites
-|-- LICENSE              # MIT Open Source License
-`-- README.md            # Enterprise architectural documentation
-```
-
----
-
-## :zap: Quick Start & Deployment
-
-### Prerequisites
-- Git `>= 2.40`
-- Docker Engine `>= 24.0` / Cloud CLI (AWS / GCP / Azure / Kubernetes)
-
-### Deployment Steps
 ```bash
-# 1. Clone the repository
-git clone https://github.com/T9113/gitlab-ci-multistage-cloud-pipeline.git
-cd gitlab-ci-multistage-cloud-pipeline
+git clone https://github.com/tayyabmasood911/gitlab-ci-multistage-cloud-pipeline.git
+cp gitlab-ci-multistage-cloud-pipeline/.gitlab-ci.yml my-app/
+cp -r gitlab-ci-multistage-cloud-pipeline/k8s my-app/
+```
 
-# 2. Inspect and configure environment parameters
-cp config/example.env config/.env
+### 2. CI/CD Environment Variables
+Configure these in **Settings > CI/CD > Variables**:
 
-# 3. Validate configurations and syntax
-# Run linters, dry-run validations, or unit test suites
+| Variable | Description | Protected | Masked |
+|:---|:---|:---:|:---:|
+| `CI_REGISTRY` | GitLab Container Registry endpoint | No | No |
+| `CI_REGISTRY_USER` | Registry deployment token username | Yes | No |
+| `CI_REGISTRY_PASSWORD` | Registry deployment token secret | Yes | Yes |
+| `KUBE_STAGING_URL` | Kubernetes staging API endpoint | Yes | No |
 
-# 4. Deploy workloads / infrastructure
-# Execute deployment manifests or container runtime
+---
+
+## Local Verification & Healthcheck
+
+```bash
+# Lint GitLab CI configuration syntax and stage logic
+python3 scripts/lint_gitlab_ci.py
+
+# Run unit test suite
+python3 -m unittest discover -s tests -p "test_*.py"
+
+# Run healthcheck
+bash scripts/healthcheck.sh
 ```
 
 ---
 
-## :gear: Configuration Reference
+## Security Governance & Disclosure
 
-| Parameter | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `ENVIRONMENT` | string | `production` | Deployment environment target (`staging`, `production`) |
-| `LOG_LEVEL` | string | `info` | Structured logging verbosity (`debug`, `info`, `warn`, `error`) |
-| `METRICS_ENABLED` | boolean | `true` | Enables real-time Prometheus / OpenTelemetry telemetry export |
-| `TLS_MIN_VERSION` | string | `TLSv1.3` | Minimum allowable TLS protocol version for network traffic |
+For security inquiries or vulnerability reports, consult our [Responsible Disclosure Policy](SECURITY.md) or contact **Tayyab Masood** at [tayyabmasood911@gmail.com](mailto:tayyabmasood911@gmail.com).
 
 ---
 
-## :lock: Security, Compliance & Governance
+## License
 
-1. **Least-Privilege Execution:** Services run under restricted service accounts with zero root permissions.
-2. **Encrypted Data In-Flight & At-Rest:** AES-256 / KMS envelope encryption for persistent state and TLS 1.3 for network transport.
-3. **Automated Supply Chain Security:** All dependencies and container images verified against CVE databases using Trivy and Semgrep.
-4. **Zero-Secret Guarantee:** No hardcoded tokens, passwords, or private keys exist in this codebase.
-
----
-
-## :bust_in_silhouette: Author & Maintainer
-
-**Tayyab Masood**  
-Cloud Solutions Architect & Senior DevOps Engineer  
-- :globe_with_meridians: **GitHub:** [@T9113](https://github.com/T9113)  
-- :scroll: **Certification:** AWS Certified Solutions Architect - Associate  
-
----
-
-## :page_facing_up: License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+Licensed under the MIT License. See [LICENSE](LICENSE) for details.

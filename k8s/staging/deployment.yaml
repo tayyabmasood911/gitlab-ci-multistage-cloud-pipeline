@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-platform-staging
+  namespace: staging
+  labels:
+    app: cloud-platform
+    environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloud-platform
+  template:
+    metadata:
+      labels:
+        app: cloud-platform
+    spec:
+      containers:
+        - name: app
+          image: registry.gitlab.com/tayyabmasood911/cloud-platform:staging
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "100m"
+              memory: "128Mi"

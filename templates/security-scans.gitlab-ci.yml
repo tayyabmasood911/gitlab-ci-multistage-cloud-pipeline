@@ -1,0 +1,29 @@
+# ==============================================================================
+# GitLab CI Modular Security Scan Template
+# ==============================================================================
+
+.security_scan_base:
+  stage: security
+  allow_failure: false
+  artifacts:
+    when: always
+    reports:
+      security: gl-security-report.json
+
+gitleaks_secrets_scan:
+  extends: .security_scan_base
+  image: zricethezav/gitleaks:latest
+  script:
+    - gitleaks detect --source . --verbose --no-git
+
+semgrep_sast_scan:
+  extends: .security_scan_base
+  image: returntocorp/semgrep:latest
+  script:
+    - semgrep scan --config "p/security-audit" --error
+
+trivy_container_scan:
+  extends: .security_scan_base
+  image: aquasec/trivy:latest
+  script:
+    - trivy image --severity CRITICAL,HIGH --exit-code 1 "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"

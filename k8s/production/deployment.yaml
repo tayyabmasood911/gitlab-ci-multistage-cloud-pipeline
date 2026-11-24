@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-platform
+  namespace: production
+  labels:
+    app: cloud-platform
+    environment: production
+spec:
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: cloud-platform
+  template:
+    metadata:
+      labels:
+        app: cloud-platform
+    spec:
+      containers:
+        - name: app
+          image: registry.gitlab.com/tayyabmasood911/cloud-platform:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
